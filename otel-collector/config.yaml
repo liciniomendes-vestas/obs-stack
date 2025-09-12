@@ -1,0 +1,59 @@
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+  attributes:
+    actions:
+      - action: insert
+        key: loki.attribute.labels
+        value: k8s.namespace.name, k8s.container.name, k8s.pod.name, platform.collector.instance, process.executable.path, process.command
+  resource:
+    attributes:
+      # Rename some labels for hackathon mostly 
+      - action: insert
+        key: platform.workload.uon
+        from_attribute: vestas.platform/workload
+      - action: insert
+        key: platform.workload.version.uon
+        from_attribute: vestas.platform/workload-version
+      - action: insert
+        key: loki.resource.labels
+        value: platform.plant.id, platform.workload.uon, platform.workload.version.uon, k8s.namespace.name, k8s.container.name, k8s.pod.name, platform.collector.instance, process.executable.path, process.command
+
+exporters:
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+    tls:
+      insecure: true
+      insecure_skip_verify: true
+    timeout: 10s
+    default_labels_enabled:
+      exporter: true
+      job: true
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/write
+    resource_to_telemetry_conversion:
+      enabled: true
+    remote_write_queue:
+      enabled: true
+    tls:
+      insecure: true
+      insecure_skip_verify: true
+
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [batch,attributes,resource]
+      exporters: [loki]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheusremotewrite]

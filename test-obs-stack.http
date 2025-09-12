@@ -1,0 +1,85 @@
+### This file can be used with REST Client extension for VSCode
+### The idea is that we don't need to build a full application to test
+### OpenTelemetry Collector with Prometheus, Loki and Grafana.
+
+# Get current epoch (built-in dynamic variable)
+@epoch = {{$timestamp}}
+
+# Build nanoseconds (choose the right line depending on @epoch unit)
+# If @epoch is SECONDS (10 digits):
+# @time_unix_nano = {{epoch}}000000000
+
+# If @epoch is MILLISECONDS (13 digits):
+@time_unix_nano = {{epoch}}000000000
+
+### Push a metric to the OpenTelemetry Collector and query it from Prometheus
+POST http://localhost:4318/v1/metrics
+Content-Type: application/json
+
+{
+  "resource_metrics": [
+    {
+      "resource": {
+        "attributes": [
+          { "key": "service.name", "value": { "string_value": "otel-test" } }
+        ]
+      },
+      "scope_metrics": [
+        {
+          "scope": { "name": "manual" },
+          "metrics": [
+            {
+              "name": "test_metric_http",
+              "gauge": {
+                "data_points": [
+                  {
+                    "time_unix_nano": {{time_unix_nano}},
+                    "as_double": {{$randomInt 10 100}}
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+### Get the metric from Prometheus
+GET http://localhost:9090/api/v1/query?query=test_metric_http
+Accept: application/json
+
+### Push a log to the OpenTelemetry Collector
+POST http://localhost:4318/v1/logs
+Content-Type: application/json
+
+{
+    "resource_logs": [
+      {
+        "resource": {
+          "attributes": [
+            { "key": "service.name", "value": { "string_value": "otel-test" } },
+            { "key": "loki.attribute.labels", "value": { "string_value": "service" } },
+            { "key": "service", "value": { "string_value": "otel-test" } }
+          ]
+        },
+        "scope_logs": [
+          {
+            "scope": { "name": "manual" },
+            "log_records": [
+              {
+                "time_unix_nano": {{time_unix_nano}},
+                "body": { "string_value": "otel-log-{{$randomInt 10 10000}}" },
+                "severity_text": "INFO"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+}
+
+### Use Grafana Explore to query logs from Loki and metrics from Prometheus
+# Metrics query (Prometheus): http://localhost:3000/explore?schemaVersion=1&panes=%7B%22cu5%22:%7B%22datasource%22:%22PBFA97CFB590B2093%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22expr%22:%22%7Bservice_name%3D%5C%22otel-test%5C%22%7D%22,%22range%22:true,%22datasource%22:%7B%22type%22:%22prometheus%22,%22uid%22:%22PBFA97CFB590B2093%22%7D%7D%5D,%22range%22:%7B%22from%22:%22now-1h%22,%22to%22:%22now%22%7D%7D%7D&orgId=1
+# Logs query (Loki): http://localhost:3000/explore?schemaVersion=1&panes=%7B%22cu5%22:%7B%22datasource%22:%22P8E80F9AEF21F6940%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22expr%22:%22%7Bservice_name%3D%5C%22otel-test%5C%22%7D%22,%22queryType%22:%22range%22,%22datasource%22:%7B%22type%22:%22loki%22,%22uid%22:%22P8E80F9AEF21F6940%22%7D,%22editorMode%22:%22code%22,%22direction%22:%22backward%22%7D%5D,%22range%22:%7B%22from%22:%22now-1h%22,%22to%22:%22now%22%7D%7D%7D&orgId=1

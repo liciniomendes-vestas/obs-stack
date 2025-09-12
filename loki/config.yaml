@@ -1,0 +1,39 @@
+auth_enabled: false
+
+common:
+  path_prefix: /loki
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: inmemory
+  replication_factor: 1
+
+# TSDB is the recommended index for 2.8+ and what 3.x expects (schema v13).
+schema_config:
+  configs:
+    - from: "2024-01-01"
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  filesystem:
+    directory: /loki/chunks
+
+compactor:
+  working_directory: /loki/compactor
+  compaction_interval: 10m
+  retention_enabled: true
+  # In 3.x set the store where delete/retention requests are tracked (use same backend as object_store):
+  delete_request_store: filesystem
+  # Optional: shorten the delay before chunks get actually removed (default 2h)
+  retention_delete_delay: 1h
+  # Optional: how long you can cancel a delete request
+  delete_request_cancel_period: 1h
+
+limits_config:
+  # Global retention (per-tenant/per-stream options also exist)
+  retention_period: 15d
