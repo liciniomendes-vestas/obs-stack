@@ -1,7 +1,7 @@
 # Observability Stack
 
 `docker compose` to spin up a Observability Stack
-with `Grafana`, `Prometheus`, `Loki` and `OTEL Collector`.
+with `Grafana`, `Prometheus`, `Loki`, `OTEL Collector` and `Promtail`.
 
 ## Usage
 
