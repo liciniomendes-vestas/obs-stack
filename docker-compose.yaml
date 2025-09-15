@@ -44,6 +44,15 @@ services:
       - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/main.yaml
       - ./grafana/dashboards:/var/lib/grafana/dashboards
 
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - ./promtail/config.yaml:/etc/promtail/config.yaml
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - loki
+    command: -config.file=/etc/promtail/config.yaml
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.102.0
     command: 
