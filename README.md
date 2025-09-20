@@ -30,7 +30,7 @@ docker compose down
 
 ## Testing the observability stack
 
-[test-obs-stack.http](../Infrastructure/open-telemetry/grafana-local/test-obs-stack.http) contains some requests that can be used to test the observability stack.
+[test-obs-stack.http](./test-obs-stack.http) contains some requests that can be used to test the observability stack.
 The file can be used with the [REST Client extension](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) in VS Code.
 The most important requests are the ones that send data to the Otel Collector.
 You can see the result in Grafana, Prometheus, and Loki.
